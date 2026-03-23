@@ -71,7 +71,8 @@ interface GpxOptions {
 ## Notes
 
 - Adds Garmin `gpxtpx` namespace only when speed values are present.  
-- Output is deterministic and platform‑agnostic.  
+- If `createdAt` is omitted, metadata time uses the first point time; if there are no points, it falls back to the current time.  
+- Elevation is formatted to 2 decimal places; speed is formatted to 4 decimal places.  
 - Saving/downloading the GPX is left to the caller.
 
 ---
