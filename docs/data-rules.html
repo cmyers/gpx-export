@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>gpx-export - Data Rules</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <main>
+        <h1>Data Rules</h1>
+
+        <p>
+            gpx-export converts track input into a consistent GPX 1.1 structure.
+            This page explains how values are mapped and written.
+        </p>
+
+        <h2>Serialization rules</h2>
+        <ul>
+            <li>Required fields are explicit in TypeScript types.</li>
+            <li>Dates are emitted as ISO-8601 with <code>toISOString()</code>.</li>
+            <li>Track names and creator values are XML-escaped.</li>
+            <li>Optional fields appear only when provided.</li>
+        </ul>
+
+        <h2>Input handling</h2>
+        <ul>
+            <li>Coordinates are written as provided by your application.</li>
+            <li>Only known GPX fields are emitted by the library.</li>
+            <li>Application-level validation remains your responsibility.</li>
+        </ul>
+
+        <h2>Recommended workflow</h2>
+        <p>
+            Normalize and validate source points first, then call
+            <code>generateGpx()</code> and save or upload the returned XML string.
+        </p>
+
+        <nav>
+            <a href="index.html">Overview</a>
+            <a href="install.html">Install</a>
+            <a href="data-rules.html">Data Rules</a>
+            <a href="api.html">API</a>
+            <a href="formats.html">Formats</a>
+            <a href="examples.html">Examples</a>
+        </nav>
+
+        <p class="external-links">
+            <a href="https://github.com/cmyers/gpx-export">GitHub</a> ·
+            <a href="https://www.npmjs.com/package/gpx-export">npm</a>
+        </p>
+    </main>
+</body>
+
+</html>

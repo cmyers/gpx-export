@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>gpx-export - Lightweight GPX generation for JavaScript</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main>
+    <h1>gpx-export</h1>
+
+    <p class="subtitle">Lightweight, portable GPX 1.1 generation without dependencies.</p>
+
+    <p>
+      gpx-export converts track points into standards-compliant GPX 1.1 XML.
+      It is a focused generator for GPS exports in Node.js, browsers, and mobile
+      runtimes, with optional Garmin TrackPointExtension speed data.
+    </p>
+
+    <pre><code>import { generateGpx } from "gpx-export";
+
+const gpx = generateGpx({
+  name: "Morning Ride",
+  points: [
+    {
+      lat: 54.5741,
+      lon: -1.3180,
+      time: new Date(),
+      elevation: 32.4,
+      speed: 5.2
+    }
+  ]
+});
+
+console.log(gpx);
+</code></pre>
+
+    <p>
+      The output includes metadata, track segments, and point timestamps.
+      When any point includes speed, gpx-export automatically emits Garmin
+      TrackPointExtension v2 data and namespace declarations.
+    </p>
+
+    <nav>
+      <a href="index.html">Overview</a>
+      <a href="install.html">Install</a>
+      <a href="data-rules.html">Data Rules</a>
+      <a href="api.html">API</a>
+      <a href="formats.html">Formats</a>
+      <a href="examples.html">Examples</a>
+    </nav>
+
+    <p class="external-links">
+      <a href="https://github.com/cmyers/gpx-export">GitHub</a> ·
+      <a href="https://www.npmjs.com/package/gpx-export">npm</a>
+    </p>
+  </main>
+</body>
+
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>gpx-export - Formats</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main>
+    <h1>GPX Output Format</h1>
+
+    <p>
+      gpx-export produces a GPX 1.1 XML document containing metadata and one
+      track segment with ordered track points.
+    </p>
+
+    <h2>Structure</h2>
+    <p>The generated document has this shape:</p>
+
+    <pre><code>&lt;gpx version="1.1" creator="gpx-export" ...&gt;
+  &lt;metadata&gt;
+    &lt;name&gt;Morning Ride&lt;/name&gt;
+    &lt;time&gt;2026-03-23T07:10:00.000Z&lt;/time&gt;
+  &lt;/metadata&gt;
+  &lt;trk&gt;
+    &lt;name&gt;Morning Ride&lt;/name&gt;
+    &lt;trkseg&gt;
+      &lt;trkpt lat="54.5741" lon="-1.318"&gt;
+        &lt;ele&gt;32.40&lt;/ele&gt;
+        &lt;time&gt;2026-03-23T07:15:00.000Z&lt;/time&gt;
+      &lt;/trkpt&gt;
+    &lt;/trkseg&gt;
+  &lt;/trk&gt;
+&lt;/gpx&gt;
+</code></pre>
+
+    <h2>Fields</h2>
+
+    <h3>metadata/name and trk/name</h3>
+    <p>
+      Track name is written in both metadata and track sections for compatibility.
+    </p>
+
+    <h3>metadata/time</h3>
+    <p>
+      Written as ISO-8601. Uses <code>createdAt</code>, then first point time,
+      then current time if no points exist.
+    </p>
+
+    <h3>trkpt lat/lon</h3>
+    <p>
+      Latitude and longitude are written as attributes on each point.
+    </p>
+
+    <h3>ele and time</h3>
+    <p>
+      Elevation is optional and formatted to two decimals.
+      Time is required and written as ISO-8601.
+    </p>
+
+    <h2>Garmin extension</h2>
+    <ul>
+      <li>When any point has speed, <code>gpxtpx</code> namespace is added.</li>
+      <li>Speed appears under <code>gpxtpx:TrackPointExtension</code>.</li>
+      <li>If no speed is present, no Garmin extension tags are emitted.</li>
+    </ul>
+
+    <h3>Example with Garmin speed data</h3>
+    <pre><code>&lt;gpx version="1.1" creator="gpx-export"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v2"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd
+                       http://www.garmin.com/xmlschemas/TrackPointExtension/v2 https://www8.garmin.com/xmlschemas/TrackPointExtensionv2.xsd"&gt;
+  &lt;metadata&gt;
+    &lt;name&gt;Morning Ride&lt;/name&gt;
+    &lt;time&gt;2026-03-23T07:10:00.000Z&lt;/time&gt;
+  &lt;/metadata&gt;
+  &lt;trk&gt;
+    &lt;name&gt;Morning Ride&lt;/name&gt;
+    &lt;trkseg&gt;
+      &lt;trkpt lat="54.5741" lon="-1.318"&gt;
+        &lt;ele&gt;32.40&lt;/ele&gt;
+        &lt;time&gt;2026-03-23T07:15:00.000Z&lt;/time&gt;
+        &lt;extensions&gt;
+          &lt;gpxtpx:TrackPointExtension&gt;
+            &lt;gpxtpx:speed&gt;5.2000&lt;/gpxtpx:speed&gt;
+          &lt;/gpxtpx:TrackPointExtension&gt;
+        &lt;/extensions&gt;
+      &lt;/trkpt&gt;
+    &lt;/trkseg&gt;
+  &lt;/trk&gt;
+&lt;/gpx&gt;
+</code></pre>
+
+    <nav>
+      <a href="index.html">Overview</a>
+      <a href="install.html">Install</a>
+      <a href="data-rules.html">Data Rules</a>
+      <a href="api.html">API</a>
+      <a href="formats.html">Formats</a>
+      <a href="examples.html">Examples</a>
+    </nav>
+
+    <p class="external-links">
+      <a href="https://github.com/cmyers/gpx-export">GitHub</a> ·
+      <a href="https://www.npmjs.com/package/gpx-export">npm</a>
+    </p>
+  </main>
+</body>
+
+</html>

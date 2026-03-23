@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>gpx-export - API</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main>
+    <h1>API Reference</h1>
+
+    <p>
+      gpx-export exposes a focused, typed API for building GPX 1.1 documents.
+      The main export is <code>generateGpx(track, options?)</code>.
+    </p>
+
+    <h2>generateGpx(track, options?)</h2>
+    <p>
+      Creates GPX 1.1 XML with metadata, track name, segment, and points.
+      Garmin TrackPointExtension output is automatically added when speed
+      values are present.
+    </p>
+
+    <pre><code>import { generateGpx } from "gpx-export";
+
+const xml = generateGpx(
+  {
+    name: "Morning Ride",
+    points: [
+      { lat: 54.57, lon: -1.31, time: new Date(), speed: 5.2 }
+    ]
+  },
+  { creator: "my-app" }
+);
+</code></pre>
+
+    <h3>Returns</h3>
+    <ul>
+      <li><strong>string</strong> - GPX 1.1 XML document</li>
+    </ul>
+
+    <h2>GpxPoint</h2>
+    <p>
+      Defines each point in the generated track.
+    </p>
+
+    <pre><code>interface GpxPoint {
+  lat: number;
+  lon: number;
+  time: Date;
+  speed?: number;     // m/s
+  elevation?: number; // metres
+}
+</code></pre>
+
+    <h2>GpxTrack</h2>
+    <p>
+      Defines metadata and ordered points.
+    </p>
+
+    <pre><code>interface GpxTrack {
+  name: string;
+  createdAt?: Date;
+  points: GpxPoint[];
+}
+</code></pre>
+
+    <h2>GpxOptions</h2>
+    <pre><code>interface GpxOptions {
+  creator?: string;
+}
+</code></pre>
+
+    <h2>Behavior notes</h2>
+    <ul>
+      <li>Creator defaults to <code>gpx-export</code>.</li>
+      <li>Track name and creator are XML-escaped before output.</li>
+      <li>Metadata time defaults to first point time, then current time.</li>
+      <li>Elevation is formatted to 2 decimal places.</li>
+      <li>Speed is formatted to 4 decimal places as <code>gpxtpx:speed</code>.</li>
+    </ul>
+
+    <nav>
+      <a href="index.html">Overview</a>
+      <a href="install.html">Install</a>
+      <a href="data-rules.html">Data Rules</a>
+      <a href="api.html">API</a>
+      <a href="formats.html">Formats</a>
+      <a href="examples.html">Examples</a>
+    </nav>
+
+    <p class="external-links">
+      <a href="https://github.com/cmyers/gpx-export">GitHub</a> ·
+      <a href="https://www.npmjs.com/package/gpx-export">npm</a>
+    </p>
+  </main>
+</body>
+
+</html>
