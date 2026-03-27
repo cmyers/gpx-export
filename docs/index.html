@@ -15,33 +15,41 @@
     <p class="subtitle">Lightweight, portable GPX 1.1 generation without dependencies.</p>
 
     <p>
-      gpx-export converts track points into standards-compliant GPX 1.1 XML.
-      It is a focused generator for GPS exports in Node.js, browsers, and mobile
-      runtimes, with optional Garmin TrackPointExtension speed data.
+      gpx-export generates GPX 1.1 XML from JavaScript and TypeScript
+      objects. It supports full-document output with metadata, waypoints, routes,
+      and tracks, and runs in Node.js, web, and mobile runtimes.
     </p>
 
     <pre><code>import { generateGpx } from "gpx-export";
 
-const gpx = generateGpx({
-  name: "Morning Ride",
-  points: [
-    {
-      lat: 54.5741,
-      lon: -1.3180,
-      time: new Date(),
-      elevation: 32.4,
-      speed: 5.2
-    }
-  ]
-});
+const now = new Date();
+
+const gpx = generateGpx(
+  {
+    name: "Morning Ride",
+    points: [
+      {
+        lat: 54.5741,
+        lon: -1.3180,
+        time: now,
+        elevation: 32.4,
+        speed: 5.2
+      }
+    ]
+  },
+  {
+    name: "Morning Ride",
+    time: now
+  }
+);
 
 console.log(gpx);
 </code></pre>
 
     <p>
-      The output includes metadata, track segments, and point timestamps.
-      When any point includes speed, gpx-export automatically emits Garmin
-      TrackPointExtension v2 data and namespace declarations.
+      The output always uses GPX 1.1 root/schema declarations.
+      Garmin TrackPointExtension v2 declarations are added automatically when
+      Garmin metrics are present on track points.
     </p>
 
     <nav>

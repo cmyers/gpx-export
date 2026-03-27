@@ -14,26 +14,29 @@
 
     <p>
       gpx-export exposes a focused, typed API for building GPX 1.1 documents.
-      The main export is <code>generateGpx(track, options?)</code>.
+      The main export is <code>generateGpx(...)</code>.
     </p>
 
-    <h2>generateGpx(track, options?)</h2>
+    <h2>generateGpx(...)</h2>
     <p>
-      Creates GPX 1.1 XML with metadata, track name, segment, and points.
-      Garmin TrackPointExtension output is automatically added when speed
-      values are present.
+      Generates GPX 1.1 XML from either:
+      <code>generateGpx(track: GpxTrack, metadata?: GpxMetadata)</code> or
+      <code>generateGpx(document: GpxDocument, metadata?: GpxMetadata)</code>.
     </p>
 
     <pre><code>import { generateGpx } from "gpx-export";
 
+const now = new Date("2026-01-01T12:00:00.000Z");
+
 const xml = generateGpx(
   {
-    name: "Morning Ride",
-    points: [
-      { lat: 54.57, lon: -1.31, time: new Date(), speed: 5.2 }
-    ]
+    name: "Session",
+    points: [{ lat: 54.57, lon: -1.31, time: now }]
   },
-  { creator: "my-app" }
+  {
+    name: "Morning Ride",
+    time: now
+  }
 );
 </code></pre>
 
@@ -42,45 +45,114 @@ const xml = generateGpx(
       <li><strong>string</strong> - GPX 1.1 XML document</li>
     </ul>
 
-    <h2>GpxPoint</h2>
-    <p>
-      Defines each point in the generated track.
-    </p>
+    <h2>GpxDocument</h2>
+    <pre><code>interface GpxDocument {
+  metadata?: GpxMetadata;
+  waypoints?: GpxWaypoint[];
+  routes?: GpxRoute[];
+  tracks?: GpxTrack[];
+}
+</code></pre>
 
+    <h2>GpxMetadata</h2>
+    <pre><code>interface GpxMetadata {
+  name?: string;
+  desc?: string;
+  author?: GpxAuthor;
+  link?: GpxLink;
+  time?: Date;
+  keywords?: string;
+  copyright?: string | GpxCopyright;
+  bounds?: GpxBounds;
+}
+
+interface GpxAuthor {
+  name: string;
+  link?: GpxLink;
+}
+
+interface GpxCopyright {
+  author: string;
+  year?: number;
+  license?: string;
+}
+
+interface GpxLink {
+  href: string;
+  text?: string;
+  type?: string;
+}
+</code></pre>
+
+    <h2>GpxPointExtensions</h2>
+    <pre><code>interface GpxPointExtensions {
+  speed?: number;      // gpxtpx:speed (m/s)
+  heartRate?: number;  // gpxtpx:hr (bpm)
+  cadence?: number;    // gpxtpx:cad (rpm)
+  rawXml?: string;     // trusted XML in &lt;extensions&gt;
+}
+</code></pre>
+
+    <h2>GpxPoint</h2>
     <pre><code>interface GpxPoint {
   lat: number;
   lon: number;
   time: Date;
-  speed?: number;     // m/s
-  elevation?: number; // metres
+  speed?: number;      // legacy alias for extensions.speed
+  elevation?: number;  // metres
+  extensions?: GpxPointExtensions;
 }
 </code></pre>
 
-    <h2>GpxTrack</h2>
     <p>
-      Defines metadata and ordered points.
+      Why speed appears in both places: <code>GpxPoint.speed</code> is a legacy compatibility alias,
+      while <code>GpxPoint.extensions.speed</code> is the canonical field for new code.
+      If both are provided, extension speed takes precedence and only one GPX speed tag is emitted.
     </p>
 
+    <h2>GpxTrack</h2>
     <pre><code>interface GpxTrack {
   name: string;
   createdAt?: Date;
-  points: GpxPoint[];
+  points?: GpxPoint[];
+  segments?: { points: GpxPoint[] }[];
+  cmt?: string;
+  desc?: string;
+  extensions?: GpxPointExtensions;
 }
 </code></pre>
 
-    <h2>GpxOptions</h2>
-    <pre><code>interface GpxOptions {
-  creator?: string;
+    <h2>GpxRoute and GpxWaypoint</h2>
+    <pre><code>interface GpxRoute {
+  name?: string;
+  cmt?: string;
+  desc?: string;
+  points: GpxRoutePoint[];
+  extensions?: GpxPointExtensions;
+}
+
+interface GpxWaypoint {
+  lat: number;
+  lon: number;
+  name?: string;
+  cmt?: string;
+  desc?: string;
+  elevation?: number;
+  time?: Date;
+  extensions?: GpxPointExtensions;
 }
 </code></pre>
 
     <h2>Behavior notes</h2>
     <ul>
       <li>Creator defaults to <code>gpx-export</code>.</li>
-      <li>Track name and creator are XML-escaped before output.</li>
-      <li>Metadata time defaults to first point time, then current time.</li>
+      <li><code>generateGpx(track, metadata?)</code> wraps track input into a one-track document.</li>
+      <li><code>metadata</code> shallow-merges onto <code>document.metadata</code>.</li>
       <li>Elevation is formatted to 2 decimal places.</li>
       <li>Speed is formatted to 4 decimal places as <code>gpxtpx:speed</code>.</li>
+      <li>Garmin <code>gpxtpx</code> namespace is emitted when Garmin metrics are present on track points.</li>
+      <li>Garmin metric tags are emitted under track-point <code>&lt;extensions&gt;</code> only.</li>
+      <li><code>rawXml</code> extension values are inserted as trusted XML and are not escaped.</li>
     </ul>
 
     <nav>

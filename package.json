@@ -1,6 +1,6 @@
 {
   "name": "gpx-export",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": "Chris Myers <chris.myers03@outlook.com> (https://www.npmjs.com/~cmyers-dev)",
   "description": "Export to GPX format from GPS data",
   "type": "module",
