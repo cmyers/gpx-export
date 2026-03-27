@@ -35,8 +35,6 @@
     "cross-platform",
     "browser",
     "web",
-    "ionic",
-    "capacitor",
     "node",
     "typescript",
     "esm"
