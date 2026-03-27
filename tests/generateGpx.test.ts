@@ -1,24 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { generateGpx, generateGpxDocument } from '../src/GpxExport';
+import { generateGpx } from '../src/GpxExport';
 
 describe('generateGpx', () => {
-    it('generates a basic GPX document', () => {
+    it('generates a basic GPX document from track input', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
         const gpx = generateGpx({
-            metadata: {
-                time: now,
-            },
-            tracks: [
+            name: 'Test Track',
+            points: [
                 {
-                    name: 'Test Track',
-                    points: [
-                        {
-                            lat: 54.0,
-                            lon: -1.0,
-                            time: now,
-                        },
-                    ],
+                    lat: 54.0,
+                    lon: -1.0,
+                    time: now,
                 },
             ],
         });
@@ -34,17 +27,13 @@ describe('generateGpx', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
         const gpx = generateGpx({
-            tracks: [
+            name: 'Speed Test',
+            points: [
                 {
-                    name: 'Speed Test',
-                    points: [
-                        {
-                            lat: 1,
-                            lon: 2,
-                            time: now,
-                            speed: 3.5,
-                        },
-                    ],
+                    lat: 1,
+                    lon: 2,
+                    time: now,
+                    speed: 3.5,
                 },
             ],
         });
@@ -53,31 +42,73 @@ describe('generateGpx', () => {
         expect(gpx).toContain('<gpxtpx:speed>3.5000</gpxtpx:speed>');
     });
 
-    it('escapes xml in legacy name and creator fields', () => {
+    it('escapes xml in legacy track name', () => {
+        const now = new Date('2026-01-01T12:00:00.000Z');
+
+        const gpx = generateGpx({
+            name: 'Track <A&B>',
+            points: [
+                {
+                    lat: 10,
+                    lon: 20,
+                    time: now,
+                },
+            ],
+        });
+
+        expect(gpx).toContain('<name>Track &lt;A&amp;B&gt;</name>');
+    });
+
+    it('wraps track input as a tracks-only document', () => {
+        const now = new Date('2026-01-01T12:00:00.000Z');
+
+        const gpx = generateGpx({
+            name: 'Legacy Track',
+            points: [
+                {
+                    lat: 12.34,
+                    lon: 56.78,
+                    time: now,
+                },
+            ],
+        });
+
+        expect(gpx).toContain('<trk>');
+        expect(gpx).toContain('<name>Legacy Track</name>');
+        expect(gpx).toContain('<trkpt lat="12.34" lon="56.78">');
+        expect(gpx).not.toContain('<metadata>');
+    });
+
+    it('allows optional metadata for track input', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
         const gpx = generateGpx(
             {
-                tracks: [
+                name: 'Legacy Track',
+                points: [
                     {
-                        name: 'Track <A&B>',
-                        points: [
-                            {
-                                lat: 10,
-                                lon: 20,
-                                time: now,
-                            },
-                        ],
+                        lat: 1,
+                        lon: 2,
+                        time: now,
                     },
                 ],
             },
-            { creator: 'tool "x" & y' },
+            {
+                name: 'Metadata Name',
+                desc: 'Metadata Description',
+                time: now,
+            },
         );
 
-        expect(gpx).toContain('creator="tool &quot;x&quot; &amp; y"');
-        expect(gpx).toContain('<name>Track &lt;A&amp;B&gt;</name>');
+        expect(gpx).toContain('<metadata>');
+        expect(gpx).toContain('<name>Metadata Name</name>');
+        expect(gpx).toContain('<desc>Metadata Description</desc>');
+        expect(gpx).toContain('<time>2026-01-01T12:00:00.000Z</time>');
+        expect(gpx).toContain('<name>Legacy Track</name>');
     });
+});
 
+describe('generateGpx (document input)', () => {
     it('accepts full document input with a single API', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
@@ -125,62 +156,50 @@ describe('generateGpx', () => {
         expect(gpx).toContain('<trk>');
     });
 
-    it('accepts legacy track input by wrapping as a tracks-only document', () => {
+    it('renders a minimal Strava-compatible track activity shape', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
         const gpx = generateGpx({
-            name: 'Legacy Track',
-            points: [
+            tracks: [
                 {
-                    lat: 12.34,
-                    lon: 56.78,
-                    time: now,
+                    name: 'Morning Run',
+                    points: [
+                        {
+                            lat: 51.5007,
+                            lon: -0.1246,
+                            time: now,
+                            elevation: 12.3,
+                        },
+                        {
+                            lat: 51.5008,
+                            lon: -0.1242,
+                            time: new Date('2026-01-01T12:00:10.000Z'),
+                            elevation: 12.8,
+                        },
+                    ],
                 },
             ],
         });
 
+        expect(gpx).toContain('<gpx version="1.1" creator="gpx-export"');
+        expect(gpx).toContain('xmlns="http://www.topografix.com/GPX/1/1"');
         expect(gpx).toContain('<trk>');
-        expect(gpx).toContain('<name>Legacy Track</name>');
-        expect(gpx).toContain('<trkpt lat="12.34" lon="56.78">');
-        expect(gpx).not.toContain('<metadata>');
-    });
-
-    it('allows optional metadata for legacy track input via options', () => {
-        const now = new Date('2026-01-01T12:00:00.000Z');
-
-        const gpx = generateGpx(
-            {
-                name: 'Legacy Track',
-                points: [
-                    {
-                        lat: 1,
-                        lon: 2,
-                        time: now,
-                    },
-                ],
-            },
-            {
-                metadata: {
-                    name: 'Metadata Name',
-                    desc: 'Metadata Description',
-                    time: now,
-                },
-            },
-        );
-
-        expect(gpx).toContain('<metadata>');
-        expect(gpx).toContain('<name>Metadata Name</name>');
-        expect(gpx).toContain('<desc>Metadata Description</desc>');
+        expect(gpx).toContain('<name>Morning Run</name>');
+        expect(gpx).toContain('<trkseg>');
+        expect(gpx).toContain('<trkpt lat="51.5007" lon="-0.1246">');
         expect(gpx).toContain('<time>2026-01-01T12:00:00.000Z</time>');
-        expect(gpx).toContain('<name>Legacy Track</name>');
-    });
-});
+        expect(gpx).toContain('<time>2026-01-01T12:00:10.000Z</time>');
 
-describe('generateGpxDocument', () => {
+        // Keep the minimal track shape free of unrelated sections.
+        expect(gpx).not.toContain('<wpt ');
+        expect(gpx).not.toContain('<rte>');
+        expect(gpx).not.toContain('xmlns:gpxtpx=');
+    });
+
     it('generates waypoints, routes, and tracks with deterministic order', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
-        const gpx = generateGpxDocument({
+        const gpx = generateGpx({
             metadata: {
                 name: 'Document Name',
                 desc: 'Document Description',
@@ -251,9 +270,17 @@ describe('generateGpxDocument', () => {
         expect(gpx.match(/<trkseg>/g)?.length ?? 0).toBe(2);
     });
 
-    it('adds metadata bounds when provided', () => {
-        const gpx = generateGpxDocument(
+    it('uses metadata bounds from the document', () => {
+        const gpx = generateGpx(
             {
+                metadata: {
+                    bounds: {
+                        minLat: 1,
+                        minLon: 2,
+                        maxLat: 3,
+                        maxLon: 4,
+                    },
+                },
                 tracks: [
                     {
                         name: 'Track',
@@ -261,23 +288,28 @@ describe('generateGpxDocument', () => {
                     },
                 ],
             },
-            {
-                bounds: {
-                    minLat: 1,
-                    minLon: 2,
-                    maxLat: 3,
-                    maxLon: 4,
-                },
-            },
         );
 
         expect(gpx).toContain('<bounds minlat="1" minlon="2" maxlat="3" maxlon="4" />');
     });
 
+    it('uses default creator', () => {
+        const gpx = generateGpx({
+            tracks: [
+                {
+                    name: 'Track',
+                    points: [],
+                },
+            ],
+        });
+
+        expect(gpx).toContain('<gpx version="1.1" creator="gpx-export"');
+    });
+
     it('supports heart rate and cadence extensions', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
-        const gpx = generateGpxDocument({
+        const gpx = generateGpx({
             tracks: [
                 {
                     name: 'Fitness',
@@ -301,6 +333,42 @@ describe('generateGpxDocument', () => {
         expect(gpx).toContain('<gpxtpx:cad>85</gpxtpx:cad>');
     });
 
+    it('does not emit Garmin TrackPointExtension for non-track points', () => {
+        const gpx = generateGpx({
+            waypoints: [
+                {
+                    lat: 1,
+                    lon: 2,
+                    extensions: {
+                        heartRate: 150,
+                        cadence: 85,
+                        speed: 3.5,
+                    },
+                },
+            ],
+            routes: [
+                {
+                    name: 'R',
+                    points: [
+                        {
+                            lat: 1,
+                            lon: 2,
+                            extensions: {
+                                heartRate: 140,
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        expect(gpx).not.toContain('xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v2"');
+        expect(gpx).not.toContain('gpxtpx:TrackPointExtension');
+        expect(gpx).not.toContain('<gpxtpx:hr>');
+        expect(gpx).not.toContain('<gpxtpx:cad>');
+        expect(gpx).not.toContain('<gpxtpx:speed>');
+    });
+
     it('is deterministic for identical input', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
         const input = {
@@ -322,15 +390,15 @@ describe('generateGpxDocument', () => {
             ],
         };
 
-        const a = generateGpxDocument(input);
-        const b = generateGpxDocument(input);
+        const a = generateGpx(input);
+        const b = generateGpx(input);
         expect(a).toBe(b);
     });
 
     it('renders metadata in GPX 1.1 field order with structured copyright', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
-        const gpx = generateGpxDocument({
+        const gpx = generateGpx({
             metadata: {
                 name: 'N',
                 desc: 'D',
@@ -367,7 +435,7 @@ describe('generateGpxDocument', () => {
     it('renders waypoint ele and time before name/cmt/desc', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
-        const gpx = generateGpxDocument({
+        const gpx = generateGpx({
             waypoints: [
                 {
                     lat: 1,
@@ -395,7 +463,7 @@ describe('generateGpxDocument', () => {
     });
 
     it('renders backward-compatible string copyright as author attribute', () => {
-        const gpx = generateGpxDocument({
+        const gpx = generateGpx({
             metadata: {
                 copyright: 'Legacy Owner',
             },
@@ -404,139 +472,112 @@ describe('generateGpxDocument', () => {
         expect(gpx).toContain('<copyright author="Legacy Owner" />');
     });
 
-    it('renders a maximal supported document with merged options and extensions', () => {
+    it('renders a maximal supported document', () => {
         const now = new Date('2026-01-01T12:00:00.000Z');
 
-        const gpx = generateGpxDocument(
-            {
-                metadata: {
-                    name: 'Doc Name',
-                    desc: 'Doc Desc',
-                    author: {
-                        name: 'Chris',
-                        link: {
-                            href: 'https://github.com/cmyers/gpx-export',
-                            text: 'Project',
-                            type: 'text/html',
-                        },
-                    },
-                    copyright: {
-                        author: 'Chris',
-                        year: 2024,
-                        license: 'https://github.com/cmyers/gpx-export/blob/main/LICENSE',
-                    },
+        const gpx = generateGpx({
+            metadata: {
+                name: 'Doc Name',
+                desc: 'Doc Desc',
+                author: {
+                    name: 'Chris',
                     link: {
                         href: 'https://github.com/cmyers/gpx-export',
                         text: 'Project',
                         type: 'text/html',
                     },
-                    time: now,
-                    keywords: 'a,b,c',
                 },
-                waypoints: [
-                    {
-                        lat: 50.1,
-                        lon: -1.2,
-                        elevation: 12.34,
-                        time: now,
-                        name: 'Waypoint A',
-                        cmt: 'Waypoint Comment',
-                        desc: 'Waypoint Description',
-                        extensions: {
-                            speed: 1.2345,
-                            heartRate: 140,
-                            cadence: 88,
-                            rawXml: '<x:wpt xmlns:x="urn:test">w</x:wpt>',
-                        },
-                    },
-                ],
-                routes: [
-                    {
-                        name: 'Route A',
-                        cmt: 'Route Comment',
-                        desc: 'Route Description',
-                        extensions: {
-                            rawXml: '<x:rte xmlns:x="urn:test">r</x:rte>',
-                        },
-                        points: [
-                            {
-                                lat: 50.2,
-                                lon: -1.3,
-                                elevation: 13.45,
-                                time: now,
-                                extensions: {
-                                    speed: 2.3456,
-                                    heartRate: 150,
-                                    cadence: 90,
-                                    rawXml: '<x:rtept xmlns:x="urn:test">rp</x:rtept>',
-                                },
-                            },
-                        ],
-                    },
-                ],
-                tracks: [
-                    {
-                        name: 'Track A',
-                        cmt: 'Track Comment',
-                        desc: 'Track Description',
-                        extensions: {
-                            rawXml: '<x:trk xmlns:x="urn:test">t</x:trk>',
-                        },
-                        segments: [
-                            {
-                                points: [
-                                    {
-                                        lat: 50.3,
-                                        lon: -1.4,
-                                        elevation: 14.56,
-                                        time: now,
-                                        speed: 3.4567,
-                                        extensions: {
-                                            heartRate: 160,
-                                            cadence: 95,
-                                            rawXml: '<x:trkpt xmlns:x="urn:test">tp</x:trkpt>',
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            },
-            {
-                creator: 'custom-tool',
-                metadata: {
-                    keywords: 'merged,keywords',
+                copyright: {
+                    author: 'Chris',
+                    year: 2024,
+                    license: 'https://github.com/cmyers/gpx-export/blob/main/LICENSE',
                 },
-                waypoints: [
-                    {
-                        lat: 60.1,
-                        lon: -2.2,
-                        name: 'Waypoint B',
-                    },
-                ],
-                routes: [
-                    {
-                        name: 'Route B',
-                        points: [
-                            {
-                                lat: 60.2,
-                                lon: -2.3,
-                            },
-                        ],
-                    },
-                ],
+                link: {
+                    href: 'https://github.com/cmyers/gpx-export',
+                    text: 'Project',
+                    type: 'text/html',
+                },
+                time: now,
+                keywords: 'a,b,c',
                 bounds: {
                     minLat: 1,
                     minLon: 2,
                     maxLat: 3,
                     maxLon: 4,
                 },
-                extensionsXml: '<x:root xmlns:x="urn:test">root</x:root>',
             },
-        );
+            waypoints: [
+                {
+                    lat: 50.1,
+                    lon: -1.2,
+                    elevation: 12.34,
+                    time: now,
+                    name: 'Waypoint A',
+                    cmt: 'Waypoint Comment',
+                    desc: 'Waypoint Description',
+                    extensions: {
+                        speed: 1.2345,
+                        heartRate: 140,
+                        cadence: 88,
+                        rawXml: '<x:wpt xmlns:x="urn:test">w</x:wpt>',
+                    },
+                },
+            ],
+            routes: [
+                {
+                    name: 'Route A',
+                    cmt: 'Route Comment',
+                    desc: 'Route Description',
+                    extensions: {
+                        rawXml: '<x:rte xmlns:x="urn:test">r</x:rte>',
+                    },
+                    points: [
+                        {
+                            lat: 50.2,
+                            lon: -1.3,
+                            elevation: 13.45,
+                            time: now,
+                            extensions: {
+                                speed: 2.3456,
+                                heartRate: 150,
+                                cadence: 90,
+                                rawXml: '<x:rtept xmlns:x="urn:test">rp</x:rtept>',
+                            },
+                        },
+                    ],
+                },
+            ],
+            tracks: [
+                {
+                    name: 'Track A',
+                    cmt: 'Track Comment',
+                    desc: 'Track Description',
+                    extensions: {
+                        rawXml: '<x:trk xmlns:x="urn:test">t</x:trk>',
+                    },
+                    segments: [
+                        {
+                            points: [
+                                {
+                                    lat: 50.3,
+                                    lon: -1.4,
+                                    elevation: 14.56,
+                                    time: now,
+                                    speed: 3.4567,
+                                    extensions: {
+                                        heartRate: 160,
+                                        cadence: 95,
+                                        rawXml: '<x:trkpt xmlns:x="urn:test">tp</x:trkpt>',
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
 
-        expect(gpx).toContain('<gpx version="1.1" creator="custom-tool"');
+        expect(gpx).toContain('<gpx version="1.1" creator="gpx-export"');
         expect(gpx).toContain('xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v2"');
 
         expect(gpx).toContain('<metadata>');
@@ -551,20 +592,16 @@ describe('generateGpxDocument', () => {
         expect(gpx).toContain('<license>https://github.com/cmyers/gpx-export/blob/main/LICENSE</license>');
         expect(gpx).toContain('<link href="https://github.com/cmyers/gpx-export">');
         expect(gpx).toContain('<time>2026-01-01T12:00:00.000Z</time>');
-        expect(gpx).toContain('<keywords>merged,keywords</keywords>');
+        expect(gpx).toContain('<keywords>a,b,c</keywords>');
         expect(gpx).toContain('<bounds minlat="1" minlon="2" maxlat="3" maxlon="4" />');
 
         expect(gpx).toContain('<wpt lat="50.1" lon="-1.2">');
         expect(gpx).toContain('<name>Waypoint A</name>');
         expect(gpx).toContain('<x:wpt xmlns:x="urn:test">w</x:wpt>');
-        expect(gpx).toContain('<wpt lat="60.1" lon="-2.2">');
-        expect(gpx).toContain('<name>Waypoint B</name>');
-
         expect(gpx).toContain('<rte>');
         expect(gpx).toContain('<name>Route A</name>');
         expect(gpx).toContain('<x:rte xmlns:x="urn:test">r</x:rte>');
         expect(gpx).toContain('<x:rtept xmlns:x="urn:test">rp</x:rtept>');
-        expect(gpx).toContain('<name>Route B</name>');
 
         expect(gpx).toContain('<trk>');
         expect(gpx).toContain('<name>Track A</name>');
@@ -572,17 +609,8 @@ describe('generateGpxDocument', () => {
         expect(gpx).toContain('<trkpt lat="50.3" lon="-1.4">');
         expect(gpx).toContain('<x:trkpt xmlns:x="urn:test">tp</x:trkpt>');
 
-        expect(gpx).toContain('<gpxtpx:speed>1.2345</gpxtpx:speed>');
-        expect(gpx).toContain('<gpxtpx:speed>2.3456</gpxtpx:speed>');
         expect(gpx).toContain('<gpxtpx:speed>3.4567</gpxtpx:speed>');
-        expect(gpx).toContain('<gpxtpx:hr>140</gpxtpx:hr>');
-        expect(gpx).toContain('<gpxtpx:hr>150</gpxtpx:hr>');
         expect(gpx).toContain('<gpxtpx:hr>160</gpxtpx:hr>');
-        expect(gpx).toContain('<gpxtpx:cad>88</gpxtpx:cad>');
-        expect(gpx).toContain('<gpxtpx:cad>90</gpxtpx:cad>');
         expect(gpx).toContain('<gpxtpx:cad>95</gpxtpx:cad>');
-
-        expect(gpx).toContain('<extensions>');
-        expect(gpx).toContain('<x:root xmlns:x="urn:test">root</x:root>');
     });
 });

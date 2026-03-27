@@ -5,7 +5,6 @@ import type {
     GpxDocument,
     GpxLink,
     GpxMetadata,
-    GpxOptions,
     GpxPoint,
     GpxPointExtensions,
     GpxRoute,
@@ -142,13 +141,13 @@ function renderMetadata(metadata: GpxMetadata | undefined): string[] {
     return lines;
 }
 
-function renderPointExtensions(extensions: GpxPointExtensions | undefined, level: number): string[] {
+function renderPointExtensions(extensions: GpxPointExtensions | undefined, level: number, includeGarminMetrics = false): string[] {
     if (!extensions) {
         return [];
     }
 
     const lines: string[] = ['<extensions>'];
-    if (hasGarminPointExtensions(extensions)) {
+    if (includeGarminMetrics && hasGarminPointExtensions(extensions)) {
         lines.push(`  <gpxtpx:TrackPointExtension>`);
         if (extensions.speed !== undefined) {
             lines.push(`    ${xmlTagNumber('gpxtpx:speed', extensions.speed, 4)}`);
@@ -165,6 +164,11 @@ function renderPointExtensions(extensions: GpxPointExtensions | undefined, level
     if (hasValue(extensions.rawXml)) {
         lines.push(extensions.rawXml);
     }
+
+    if (lines.length === 1) {
+        return [];
+    }
+
     lines.push('</extensions>');
     return indentLines(lines, level);
 }
@@ -177,7 +181,7 @@ function renderTrackPoint(point: GpxPoint, level: number): string[] {
     lines.push(`  ${xmlTag('time', point.time.toISOString())}`);
 
     const extensions = normalizePointExtensions(point.speed, point.extensions);
-    lines.push(...renderPointExtensions(extensions, 1));
+    lines.push(...renderPointExtensions(extensions, 1, true));
     lines.push('</trkpt>');
     return indentLines(lines, level);
 }
@@ -260,38 +264,12 @@ function renderTrack(track: GpxTrack, level: number): string[] {
     return indentLines(lines, level);
 }
 
-function shouldUseGarminExtension(document: GpxDocument, rootExtensionsXml?: string): boolean {
-    if (hasValue(rootExtensionsXml)) {
-        return true;
-    }
-
-    const pointHasGarmin = (extensions: GpxPointExtensions | undefined): boolean => hasGarminPointExtensions(extensions);
-
-    for (const waypoint of document.waypoints ?? []) {
-        if (pointHasGarmin(waypoint.extensions)) {
-            return true;
-        }
-    }
-
-    for (const route of document.routes ?? []) {
-        if (pointHasGarmin(route.extensions)) {
-            return true;
-        }
-        for (const point of route.points) {
-            if (pointHasGarmin(point.extensions)) {
-                return true;
-            }
-        }
-    }
-
+function shouldUseGarminExtension(document: GpxDocument): boolean {
     for (const track of document.tracks ?? []) {
-        if (pointHasGarmin(track.extensions)) {
-            return true;
-        }
         for (const segment of resolveTrackSegments(track)) {
             for (const point of segment.points) {
                 const normalized = normalizePointExtensions(point.speed, point.extensions);
-                if (pointHasGarmin(normalized)) {
+                if (hasGarminPointExtensions(normalized)) {
                     return true;
                 }
             }
@@ -311,26 +289,20 @@ function mergeMetadata(base: GpxMetadata | undefined, incoming: GpxMetadata | un
     };
 }
 
-function normalizeDocument(document: GpxDocument, options: GpxOptions): GpxDocument {
+function normalizeDocument(document: GpxDocument, metadata: GpxMetadata | undefined): GpxDocument {
     return {
-        metadata: mergeMetadata(document.metadata, options.metadata),
-        waypoints: [...(document.waypoints ?? []), ...(options.waypoints ?? [])],
-        routes: [...(document.routes ?? []), ...(options.routes ?? [])],
+        metadata: mergeMetadata(document.metadata, metadata),
+        waypoints: document.waypoints ?? [],
+        routes: document.routes ?? [],
         tracks: document.tracks ?? [],
     };
 }
 
-export function generateGpxDocument(document: GpxDocument, options: GpxOptions = {}): string {
-    const normalized = normalizeDocument(document, options);
-    if (options.bounds) {
-        normalized.metadata = {
-            ...(normalized.metadata ?? {}),
-            bounds: options.bounds,
-        };
-    }
+function generateGpxDocument(document: GpxDocument, metadata?: GpxMetadata): string {
+    const normalized = normalizeDocument(document, metadata);
 
-    const creator = escapeXml(options.creator ?? 'gpx-export');
-    const useGarminExtension = shouldUseGarminExtension(normalized, options.extensionsXml);
+    const creator = escapeXml('gpx-export');
+    const useGarminExtension = shouldUseGarminExtension(normalized);
 
     const lines: string[] = [
         `<?xml version="1.0" encoding="UTF-8"?>`,
@@ -361,12 +333,6 @@ export function generateGpxDocument(document: GpxDocument, options: GpxOptions =
         lines.push(...renderTrack(track, 1));
     }
 
-    if (hasValue(options.extensionsXml)) {
-        lines.push('  <extensions>');
-        lines.push(options.extensionsXml);
-        lines.push('  </extensions>');
-    }
-
     lines.push(`</gpx>`);
     return lines.join('\n');
 }
@@ -375,11 +341,10 @@ function isTrackInput(input: GpxTrack | GpxDocument): input is GpxTrack {
     return 'name' in input;
 }
 
-export function generateGpx(input: GpxTrack | GpxDocument, options: GpxOptions = {}): string {
+export function generateGpx(input: GpxTrack | GpxDocument, metadata?: GpxMetadata): string {
     if (isTrackInput(input)) {
-        return generateGpxDocument({ tracks: [input] }, options);
+        return generateGpxDocument({ tracks: [input] }, metadata);
     }
-
-    return generateGpxDocument(input, options);
+    return generateGpxDocument(input, metadata);
 }
 

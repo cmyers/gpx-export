@@ -4,7 +4,6 @@ export type { GpxCopyright } from './GpxCopyright';
 export type { GpxDocument } from './GpxDocument';
 export type { GpxLink } from './GpxLink';
 export type { GpxMetadata } from './GpxMetadata';
-export type { GpxOptions } from './GpxOptions';
 export type { GpxPoint } from './GpxPoint';
 export type { GpxPointExtensions } from './GpxPointExtensions';
 export type { GpxRoute } from './GpxRoute';

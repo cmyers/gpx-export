@@ -13,29 +13,51 @@
         <h1>Data Rules</h1>
 
         <p>
-            gpx-export converts track input into a consistent GPX 1.1 structure.
-            This page explains how values are mapped and written.
+            gpx-export converts typed input into a consistent GPX 1.1 document.
+            This page describes how values are merged and serialized.
         </p>
 
         <h2>Serialization rules</h2>
         <ul>
             <li>Required fields are explicit in TypeScript types.</li>
             <li>Dates are emitted as ISO-8601 with <code>toISOString()</code>.</li>
-            <li>Track names and creator values are XML-escaped.</li>
+            <li>String element values and selected attributes are XML-escaped.</li>
             <li>Optional fields appear only when provided.</li>
+            <li>Elevation is formatted to 2 decimal places.</li>
+            <li>Garmin speed is formatted to 4 decimal places.</li>
         </ul>
 
-        <h2>Input handling</h2>
+        <h2>Document handling</h2>
         <ul>
-            <li>Coordinates are written as provided by your application.</li>
-            <li>Only known GPX fields are emitted by the library.</li>
-            <li>Application-level validation remains your responsibility.</li>
+            <li><code>generateGpx(track, metadata?)</code> accepts tracks-only input.</li>
+            <li><code>generateGpx(document, metadata?)</code> accepts full <code>GpxDocument</code> input.</li>
+            <li>Track input is normalized to a one-track document internally.</li>
+            <li>Provided metadata shallow-merges into <code>document.metadata</code>.</li>
+        </ul>
+
+        <h2>Track and segment behavior</h2>
+        <ul>
+            <li>If <code>track.segments</code> is provided and non-empty, those segments are emitted.</li>
+            <li>Otherwise, a single segment is created from <code>track.points</code> (or empty points).</li>
+            <li>Track points require <code>time</code>; route points and waypoints use optional time.</li>
+        </ul>
+
+        <h2>Extensions behavior</h2>
+        <ul>
+            <li>Garmin namespace/schema declarations are added when Garmin metrics are present on track points.</li>
+            <li>Garmin point values map to <code>gpxtpx:speed</code>, <code>gpxtpx:hr</code>, and
+                <code>gpxtpx:cad</code> on track points.
+            </li>
+            <li><code>GpxPoint.speed</code> exists as a legacy compatibility alias; <code>extensions.speed</code> is
+                the canonical field for new code.</li>
+            <li>When both are provided on a track point, <code>extensions.speed</code> takes precedence.</li>
+            <li>Extension <code>rawXml</code> values are trusted XML and are not escaped.</li>
         </ul>
 
         <h2>Recommended workflow</h2>
         <p>
-            Normalize and validate source points first, then call
-            <code>generateGpx()</code> and save or upload the returned XML string.
+            Validate your source data before generation, then call
+            <code>generateGpx()</code> and persist or upload the resulting GPX XML.
         </p>
 
         <nav>

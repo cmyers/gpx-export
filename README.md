@@ -3,8 +3,8 @@
 Zero-dependency GPX 1.1 generator for Node.js, browsers, Capacitor, and other JS runtimes.
 
 It supports:
-- Single-method generation via `generateGpx` with `GpxDocument` input
-- Backward-compatible `generateGpx(track, options)` support via tracks-only wrapper
+- `generateGpx(track, metadata?)` for tracks-only input
+- `generateGpx(document, metadata?)` for full document input
 - Waypoints, routes, tracks, and metadata
 - Garmin TrackPointExtension v2 (`gpxtpx`) for speed, heart rate, and cadence
 
@@ -23,26 +23,19 @@ const now = new Date();
 
 const gpx = generateGpx(
   {
-    metadata: {
-      time: now,
-    },
-    tracks: [
+    name: 'Morning Ride',
+    points: [
       {
-        name: 'Morning Ride',
-        points: [
-          {
-            lat: 54.5741,
-            lon: -1.318,
-            time: now,
-            elevation: 32.4,
-            speed: 5.2,
-          },
-        ],
+        lat: 54.5741,
+        lon: -1.318,
+        time: now,
+        elevation: 32.4,
+        speed: 5.2,
       },
     ],
   },
   {
-    creator: 'my-app',
+    time: now,
   },
 );
 
@@ -105,38 +98,16 @@ const gpx = generateGpx(
         ],
       },
     ],
-  },
-  {
-    creator: 'my-app',
-    bounds: {
-      minLat: 54.4,
-      minLon: -1.4,
-      maxLat: 54.7,
-      maxLon: -1.1,
-    },
-  },
+  }
 );
 ```
 
 ## API
 
-### generateGpx(document: GpxDocument, options?: GpxOptions): string
+### generateGpx(track: GpxTrack, metadata?: GpxMetadata): string
+### generateGpx(document: GpxDocument, metadata?: GpxMetadata): string
 
-Generates a GPX 1.1 document from a full GPX document object.
-
-Backward compatibility:
-- Passing a `GpxTrack` is still supported.
-- Track input is wrapped as `{ tracks: [track] }` and then processed as a document.
-- Optional metadata can be supplied with `options.metadata`.
-
-### generateGpxDocument(document: GpxDocument, options?: GpxOptions): string
-
-Compatibility alias for `generateGpx(document, options)`.
-
-Merge behavior:
-- `options.metadata` shallow-merges into `document.metadata`.
-- `options.waypoints` and `options.routes` are appended.
-- `options.bounds` writes `metadata.bounds`.
+Generates a GPX 1.1 document from either a `GpxTrack` or `GpxDocument`, with optional metadata that shallow-merges into `document.metadata`.
 
 ## Supported Types (Summary)
 
@@ -167,15 +138,12 @@ interface GpxTrack {
   extensions?: GpxPointExtensions;
 }
 
-interface GpxOptions {
-  creator?: string;     // default: "gpx-export"
-  metadata?: GpxMetadata;
-  waypoints?: GpxWaypoint[];
-  routes?: GpxRoute[];
-  bounds?: GpxBounds;
-  extensionsXml?: string; // trusted XML in root <extensions>
-}
 ```
+
+Why speed appears in two places:
+- `GpxPoint.speed` exists for backward compatibility with older callers.
+- `GpxPoint.extensions.speed` is the canonical field for new code.
+- When both are provided, `extensions.speed` wins and only one GPX speed tag is emitted.
 
 All exported type definitions are available from the package root.
 
@@ -183,8 +151,9 @@ All exported type definitions are available from the package root.
 
 - Elevation is formatted to 2 decimal places.
 - Speed is formatted to 4 decimal places.
-- The Garmin `gpxtpx` namespace is included when Garmin point extensions are present.
-- `extensionsXml` and `rawXml` values are inserted as trusted XML and are not escaped.
+- The Garmin `gpxtpx` namespace is included when Garmin metrics are present on track points.
+- Garmin `gpxtpx` metric tags are emitted on track points (`trkpt`) only.
+- `rawXml` values are inserted as trusted XML and are not escaped.
 - Element output order is deterministic for identical inputs.
 
 ## Scope

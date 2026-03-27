@@ -13,58 +13,117 @@
     <h1>Examples</h1>
 
     <p>
-      gpx-export can be used anywhere you need portable GPS track exports.
-      Below are small, focused examples for common app flows.
+      gpx-export can be used anywhere you need portable GPX 1.1 exports.
+      These examples show common generation flows with the current API.
     </p>
 
-    <h2>Basic one-point export</h2>
+    <h2>Basic one-point track export</h2>
     <p>
-      Useful for smoke tests and validating export flow.
+      Useful for smoke tests and validating end-to-end export wiring.
     </p>
 
     <pre><code>import { generateGpx } from "gpx-export";
 
-const gpx = generateGpx({
-  name: "Quick Point",
-  points: [
-    {
-      lat: 54.57,
-      lon: -1.31,
-      time: new Date("2026-03-23T09:00:00Z")
-    }
-  ]
-});
+const now = new Date("2026-03-23T09:00:00Z");
+
+const gpx = generateGpx(
+  {
+    name: "Quick Point",
+    points: [
+      {
+        lat: 54.57,
+        lon: -1.31,
+        time: now
+      }
+    ]
+  },
+  { name: "Quick Point", time: now }
+);
 </code></pre>
 
-    <h2>Multi-point run with elevation and speed</h2>
+    <h2>Multi-point run with Garmin metrics</h2>
     <p>
-      Includes Garmin extension output because speed is present.
+      Garmin extension output is included when Garmin metrics are present on track points.
     </p>
 
     <pre><code>const gpx = generateGpx({
   name: "Interval Session",
-  points: [
+  segments: [
     {
-      lat: 54.5741,
-      lon: -1.3180,
-      time: new Date("2026-03-23T07:15:00Z"),
-      elevation: 32.4,
-      speed: 5.2
-    },
-    {
-      lat: 54.5751,
-      lon: -1.3194,
-      time: new Date("2026-03-23T07:16:00Z"),
-      elevation: 34.0,
-      speed: 5.6
+      points: [
+        {
+          lat: 54.5741,
+          lon: -1.3180,
+          time: new Date("2026-03-23T07:15:00Z"),
+          elevation: 32.4,
+          extensions: {
+            speed: 5.2,
+            heartRate: 151,
+            cadence: 86
+          }
+        },
+        {
+          lat: 54.5751,
+          lon: -1.3194,
+          time: new Date("2026-03-23T07:16:00Z"),
+          elevation: 34.0,
+          speed: 5.6
+        }
+      ]
     }
   ]
 });
 </code></pre>
 
+    <h2>Waypoints and routes</h2>
+    <p>
+      Build complete GPX documents with waypoint and route data.
+    </p>
+
+    <pre><code>const gpx = generateGpx({
+  waypoints: [
+    { lat: 54.57, lon: -1.31, name: "Start", time: new Date() }
+  ],
+  routes: [
+    {
+      name: "Scenic Route",
+      points: [
+        { lat: 54.57, lon: -1.31, time: new Date() },
+        { lat: 54.59, lon: -1.28, time: new Date() }
+      ]
+    }
+  ]
+});
+</code></pre>
+
+    <h2>Using optional metadata merge</h2>
+    <p>
+      <code>generateGpx(document, metadata?)</code> accepts optional
+      metadata that shallow-merges into <code>document.metadata</code>.
+    </p>
+
+    <pre><code>import { generateGpx } from "gpx-export";
+
+const gpx = generateGpx(
+  {
+    tracks: [
+      {
+        name: "Session",
+        points: [{ lat: 54.57, lon: -1.31, time: new Date() }]
+      }
+    ]
+  },
+  {
+    name: "Morning Ride",
+    time: new Date(),
+    keywords: "cycling,training"
+  }
+);
+</code></pre>
+
     <h2>Mapping app sensor samples</h2>
     <p>
-      Convert your own schema into gpx-export points.
+      Convert your own schema into typed track points.
     </p>
 
     <pre><code>const points = samples.map((sample) => ({
@@ -72,13 +131,14 @@ const gpx = generateGpx({
   lon: sample.longitude,
   time: new Date(sample.timestamp),
   elevation: sample.altitudeMeters,
-  speed: sample.speedMetersPerSecond
+  extensions: {
+    speed: sample.speedMetersPerSecond,
+    heartRate: sample.heartRate,
+    cadence: sample.cadence
+  }
 }));
 
-const gpx = generateGpx({
-  name: "Mapped Sensor Track",
-  points
-});
+const gpx = generateGpx({ name: "Mapped Sensor Track", points });
 </code></pre>
 
     <h2>Node.js file export</h2>
